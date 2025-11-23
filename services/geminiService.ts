@@ -1,85 +1,88 @@
-import { GoogleGenAI, Type } from "@google/genai";
-import { GeneratedResponse, InstagramContentOption, Tone } from "../types";
+import { InstagramContentOption, Tone } from "../types";
 
-// Helper to convert File to Base64
-const fileToBase64 = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => {
-      const result = reader.result as string;
-      const base64 = result.split(',')[1];
-      resolve(base64);
-    };
-    reader.onerror = (error) => reject(error);
-  });
+// Listas de Templates para o Gerador Local
+const HOOK_TEMPLATES = [
+  "Esse é o jeito mais preguiçoso de [NICHO]",
+  "Esses são os segredos do [NICHO]",
+  "Isso vai mudar a forma como você vê [IDEIA]",
+  "Se você está com problemas em [NICHO] escute isso",
+  "A razão número um pra você não ter sucesso no [NICHO] é...",
+  "Você já parou pra pensar nisso sobre [IDEIA]?",
+  "Ninguém te conta isso sobre [NICHO], mas...",
+  "É assim que você muda o jogo no [NICHO].",
+  "Fica até o final, porque [IDEIA] vai te ajudar.",
+  "Isso aqui é pra você que tá cansado de falhar no [NICHO]",
+  "Se eu soubesse disso antes sobre [IDEIA], teria economizado tempo.",
+  "10 curiosidades proibidas sobre [NICHO]",
+  "25 sinais proibidos que você ignora no [NICHO]",
+  "Eu tentei de tudo no [NICHO]... até descobrir isso",
+  "Parece bobo, mas [IDEIA] mudou tudo pra mim."
+];
+
+// Modificadores de Tom para a Intro
+const TONE_INTRO_MODIFIERS: Record<Tone, string[]> = {
+  [Tone.FUNNY]: ["Olha, eu não queria rir, mas...", "Parece piada, mas é sério: ", "Se você rir, já sabe: "],
+  [Tone.PROFESSIONAL]: ["Do ponto de vista estratégico: ", "Analisando os dados do mercado: ", "Profissionalmente falando: "],
+  [Tone.INSPIRATIONAL]: ["Imagine onde você pode chegar. ", "Sua jornada começa agora. ", "Não desista antes de ver isso. "],
+  [Tone.EDUCATIONAL]: ["Pegue papel e caneta. ", "Aula rápida de hoje: ", "O conceito por trás disso é simples: "],
+  [Tone.CASUAL]: ["Papo reto aqui: ", "Senta que lá vem história: ", "Só entre nós: "],
+  [Tone.CONTROVERSIAL]: ["Muitos vão discordar, mas... ", "A verdade que dói: ", "Cancelem se quiserem, mas: "]
 };
 
-const VIRAL_HOOKS_LIST = `
-"Esse é o jeito mais preguiçoso de [assunto]"
-"Esses são os [assunto]"
-"Isso vai mudar a forma como você [assunto]"
-"Se você está com [problema] escute isso atenciosamente"
-"A razão número um pra você não estar no [objetivo do nicho] é..."
-"Você já parou pra pensar nisso?"
-"Ninguém te conta isso, mas..."
-"É assim que você muda o jogo."
-"Fica até o final, porque isso pode te ajudar de verdade."
-"Isso aqui é pra você que tá cansado de..."
-"Se eu soubesse disso antes, teria economizado muito tempo."
-"Você também sente isso ou é só comigo?"
-"Isso aqui pode parecer simples, mas faz toda a diferença."
-"Talvez isso mude a forma como você vê as coisas."
-"O que ninguém vê por trás das câmeras é isso aqui:"
-"Esse é o tipo de coisa que ninguém fala por medo de julgamento."
-"Uma verdade difícil de engolir, mas necessária."
-"Se você vive isso, então presta atenção aqui:"
-"Salva isso porque você vai precisar um dia."
-"Aprendi isso do jeito mais difícil."
-"Essa dica vale ouro e quase ninguém aplica."
-"Você vai me agradecer depois por ter visto isso."
-"Parece bobo, mas mudou tudo pra mim."
-"Já errei muito até entender isso aqui."
-"Essa é pra quem pensa em desistir."
-"Se você trabalha com isso, escuta o que eu vou te dizer:"
-"Esse é o tipo de coisa que pode mudar seu resultado."
-"Me disseram isso uma vez e nunca mais esqueci."
-"Só quem já passou por isso vai entender."
-"Se eu pudesse voltar no tempo, faria isso diferente."
-"Se eu soubesse disso antes..."
-"Você não tinha que passar por isso..."
-"10 curiosidades proibidas sobre [assunto]"
-"25 sinais proibidos que você [ignora/tem]"
-"10 hábitos inofensivos que [te prejudicam]"
-"Eu tentei de tudo... até descobrir isso"
-`;
+const CAPTION_BODY_TEMPLATES = [
+  "A verdade é que [IDEIA] é a chave para destravar seus resultados no universo de [NICHO].\n\nQuando você aplica essa estratégia, tudo muda.",
+  "O segredo está na simplicidade. Focar em [IDEIA] vai te trazer muito mais retorno do que tentar inventar a roda dentro de [NICHO].",
+  "Existe um padrão oculto: quem domina [IDEIA] sai na frente. Não é mágica, é método aplicado ao [NICHO].",
+  "Se você continuar ignorando [IDEIA], vai continuar patinando. É uma verdade difícil, mas necessária para quem quer crescer em [NICHO]."
+];
 
-const VIRAL_KEYWORDS = "Proibidas, preguiçosos, silenciosos, secretos, oculto, revelado, bastidores, mentira, verdade, dinheiro, rápido, fácil, sinais, curiosidades, inofensivos";
+const CTA_TEMPLATES = [
+  "👇 Comenta 'EU QUERO' que eu te envio o mapa completo no direct.",
+  "💾 Salva esse post para aplicar quando estiver precisando de inspiração.",
+  "🚀 Siga o perfil para não cometer mais esse erro.",
+  "🔥 Compartilha com aquele amigo que precisa ouvir essa verdade.",
+  "💬 Deixa sua opinião: você concorda ou discorda?"
+];
 
-export const getMockInstagramContent = async (): Promise<InstagramContentOption[]> => {
-  // Simulates network delay
-  await new Promise(resolve => setTimeout(resolve, 1500));
+const EXPLANATION_TEMPLATES = [
+  "Usa o gatilho da 'Informação Privilegiada' para gerar curiosidade imediata.",
+  "Apela para o desejo humano de obter máximo resultado com mínimo esforço.",
+  "Gera autoridade ao mostrar que você sabe algo que a maioria ignora.",
+  "Cria conexão através da dor comum do nicho.",
+  "Utiliza a quebra de padrão para prender a atenção nos primeiros segundos."
+];
 
-  return [
-    {
-      hook: "O segredo PROIBIDO que os gurus não te contam...",
-      caption: "Você já parou pra pensar por que alguns perfis crescem rápido e o seu não?\n\nA verdade é que existe um padrão oculto nos algoritmos que 99% das pessoas ignoram.\n\nEu descobri isso da pior forma, mas você não precisa passar por isso.\n\n👇 Comenta 'SEGREDO' que eu te envio o mapa completo no direct.",
-      hashtags: ["#marketingdigital", "#segredosdonicho", "#crescimentoviral", "#dicasdeinstagram"],
-      explanation: "Usa o gatilho da 'Informação Privilegiada/Proibida' para gerar curiosidade imediata."
-    },
-    {
-      hook: "Esse é o jeito mais PREGUIÇOSO de ter resultados",
-      caption: "Pare de trabalhar duro e comece a trabalhar inteligente.\n\nDescobri um método que economiza 10h da minha semana e ainda dobra os resultados.\n\nIsso muda o jogo para quem não tem tempo a perder.\n\n💾 Salva esse post para aplicar quando estiver com preguiça (mas querendo resultados).",
-      hashtags: ["#produtividade", "#hacks", "#preguiçainteligente", "#lifestyle"],
-      explanation: "Apela para o desejo humano de obter máximo resultado com mínimo esforço (Lei do Menor Esforço)."
-    },
-    {
-      hook: "10 sinais inofensivos que você está perdendo dinheiro",
-      caption: "Você acha que está tudo bem, mas esses pequenos hábitos estão drenando seu potencial.\n\n1. Procrastinação disfarçada de planejamento.\n2. Medo de vender.\n3. Ignorar os dados...\n\n(A lista continua no vídeo)\n\n🚀 Siga o perfil para não cometer o erro número 11.",
-      hashtags: ["#dinheiro", "#sucesso", "#erroscomuns", "#empreendedorismo"],
-      explanation: "Listas numeradas com viés negativo ('perder dinheiro') geram altíssima retenção por medo de perda (FOMO)."
-    }
-  ];
+// Função auxiliar para substituir placeholders
+const fillTemplate = (template: string, niche: string, idea: string): string => {
+  let text = template;
+  // Limpa o nicho e ideia para encaixar melhor
+  const cleanNiche = niche.trim();
+  const cleanIdea = idea.trim() || niche.trim();
+
+  text = text.replace(/\[NICHO\]/g, cleanNiche);
+  text = text.replace(/\[IDEIA\]/g, cleanIdea);
+  text = text.replace(/\[assunto\]/g, cleanNiche);
+  text = text.replace(/\[problema\]/g, "dificuldades");
+  text = text.replace(/\[objetivo do nicho\]/g, "sucesso");
+  
+  return text;
+};
+
+const getRandomItem = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+
+// Função para gerar hashtags baseadas em keywords
+const generateHashtags = (niche: string, keywords: string): string[] => {
+  const baseHashtags = ["#viral", "#explore", `#${niche.replace(/\s/g, '')}`, "#reels"];
+  
+  if (!keywords) return [...baseHashtags, "#dicas", "#sucesso"];
+
+  const keywordTags = keywords
+    .split(',')
+    .map(k => k.trim())
+    .filter(k => k.length > 0)
+    .map(k => `#${k.replace(/\s/g, '')}`);
+
+  return [...baseHashtags, ...keywordTags];
 };
 
 export const generateInstagramContent = async (
@@ -87,120 +90,53 @@ export const generateInstagramContent = async (
   videoIdea: string,
   tone: Tone,
   imageFile: File | null,
-  customHook?: string
+  customHook?: string,
+  keywords: string = ""
 ): Promise<InstagramContentOption[]> => {
   
-  if (!process.env.API_KEY) {
-    throw new Error("API Key is missing. Please check your environment configuration.");
-  }
+  // Simula tempo de processamento para "parecer" IA
+  await new Promise(resolve => setTimeout(resolve, 2000));
 
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const options: InstagramContentOption[] = [];
+  const toneIntro = getRandomItem(TONE_INTRO_MODIFIERS[tone] || TONE_INTRO_MODIFIERS[Tone.CASUAL]);
+  const specificHashtags = generateHashtags(niche, keywords);
 
-  const schema = {
-    type: Type.OBJECT,
-    properties: {
-      options: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            hook: {
-              type: Type.STRING,
-              description: "O TEXTO NA TELA (Headline) que ficará visível durante o vídeo. Deve usar um dos ganchos virais fornecidos.",
-            },
-            caption: {
-              type: Type.STRING,
-              description: "A legenda do post. Deve ter 3 partes: Contexto/Dor, Conteúdo de Valor e CTA específico.",
-            },
-            hashtags: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-              description: "5-10 hashtags misturando nicho e virais.",
-            },
-            explanation: {
-              type: Type.STRING,
-              description: "Explicação curta de qual gatilho mental foi usado.",
-            }
-          },
-          required: ["hook", "caption", "hashtags", "explanation"],
-        },
-      },
-    },
-    required: ["options"],
-  };
+  // Keyword integration text
+  const keywordFocusText = keywords 
+    ? `\n\nPrincipalmente se você busca ${keywords.split(',')[0] || 'resultados'}.` 
+    : "";
 
-  const parts: any[] = [];
+  // --- Opção 1: Focada no Gancho (ou Customizado) + Tom ---
+  let hook1 = customHook 
+    ? customHook 
+    : fillTemplate(getRandomItem(HOOK_TEMPLATES), niche, videoIdea);
+  
+  options.push({
+    hook: hook1,
+    caption: `${toneIntro} Você já percebeu isso?\n\n${fillTemplate(getRandomItem(CAPTION_BODY_TEMPLATES), niche, videoIdea)}${keywordFocusText}\n\n${getRandomItem(CTA_TEMPLATES)}`,
+    hashtags: specificHashtags,
+    explanation: `Focada em gerar curiosidade imediata com tom ${tone}.`
+  });
 
-  if (imageFile) {
-    const base64Data = await fileToBase64(imageFile);
-    parts.push({
-      inlineData: {
-        mimeType: imageFile.type,
-        data: base64Data,
-      },
-    });
-  }
+  // --- Opção 2: Focada em Dor/Solução ---
+  const hook2 = fillTemplate(getRandomItem(HOOK_TEMPLATES.filter(h => h !== hook1)), niche, videoIdea);
+  options.push({
+    hook: hook2,
+    caption: `Muitas pessoas em ${niche} sofrem com isso.\n\n${fillTemplate("A solução para [IDEIA] não é difícil, mas exige constância.", niche, videoIdea)}\n\n${getRandomItem(CTA_TEMPLATES)}`,
+    hashtags: [...specificHashtags, "#solução", "#metodo"],
+    explanation: getRandomItem(EXPLANATION_TEMPLATES)
+  });
 
-  let promptText = `
-    Você é um Arquiteto de Virais para Instagram Reels.
-    
-    ESTRUTURA OBRIGATÓRIA:
-    1. O usuário fornecerá um NICHO e uma IDEIA DE VÍDEO.
-    2. Você DEVE escolher um gancho da LISTA DE GANCHOS VIRAIS abaixo e adaptá-lo para o nicho.
-    3. O 'hook' (Título na Tela) deve conter palavras de poder como: ${VIRAL_KEYWORDS}.
-    4. A 'caption' (Legenda) deve ser estruturada em blocos:
-       - Primeira linha: Gancho de atenção (relacionado ao título).
-       - Meio: Conteúdo denso, educativo ou inspirador (O "Ouro").
-       - Final: Chamada para Ação (CTA) estratégica para gerar engajamento ou salvamentos.
-    
-    ENTRADAS DO USUÁRIO:
-    Nicho: "${niche}"
-    Ideia do Vídeo/Contexto: "${videoIdea}"
-    Tom de Voz: ${tone}
-  `;
+  // --- Opção 3: Focada em Lista/Segredo ---
+  const hook3 = fillTemplate(getRandomItem(HOOK_TEMPLATES.filter(h => h !== hook1 && h !== hook2)), niche, videoIdea);
+  options.push({
+    hook: hook3,
+    caption: `3 Segredos sobre ${niche} que ninguém conta:\n\n1. O básico funciona.\n2. ${videoIdea} é essencial.\n3. A constância vence o talento.\n\nQual desses você mais precisa melhorar?\n\n${getRandomItem(CTA_TEMPLATES)}`,
+    hashtags: [...specificHashtags, "#segredos", "#bastidores"],
+    explanation: "Listas numeradas retêm a atenção até o final do vídeo."
+  });
 
-  if (customHook) {
-    promptText += `
-    ATENÇÃO - SOLICITAÇÃO PERSONALIZADA:
-    O usuário inseriu um gancho manual específico: "${customHook}".
-    - A Opção 1 DEVE usar exatamente este gancho ou uma adaptação muito leve.
-    `;
-  }
-
-  promptText += `
-    LISTA DE GANCHOS VIRAIS:
-    ${VIRAL_HOOKS_LIST}
-    
-    REQUISITOS DE SAÍDA:
-    - Gere 3 opções distintas.
-    - Opção 1: Foco em curiosidade/segredo.
-    - Opção 2: Foco em facilidade/preguiça/atalho.
-    - Opção 3: Foco em dor/identificação.
-    
-    Retorne APENAS JSON.
-  `;
-
-  parts.push({ text: promptText });
-
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: { parts: parts },
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: schema,
-        temperature: 0.85, 
-      },
-    });
-
-    const jsonText = response.text;
-    if (!jsonText) throw new Error("No response text received from Gemini.");
-
-    const parsedResponse = JSON.parse(jsonText) as GeneratedResponse;
-    return parsedResponse.options;
-
-  } catch (error) {
-    console.error("Error calling Gemini API:", error);
-    throw error;
-  }
+  return options;
 };
+
+export const getMockInstagramContent = generateInstagramContent;

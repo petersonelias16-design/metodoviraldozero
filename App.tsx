@@ -1,14 +1,21 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import { supabase } from './services/supabaseClient';
+import { Session } from '@supabase/supabase-js';
 import { Tone, InstagramContentOption } from './types';
-import { generateInstagramContent, getMockInstagramContent } from './services/geminiService';
+import { generateInstagramContent } from './services/geminiService';
 import Header from './components/Header';
 import ResultCard from './components/ResultCard';
-import { Loader2, Upload, X, Send, Target, Lightbulb, Video, PlayCircle, Mic2, Download, PenTool, AlertTriangle, AlertCircle, Sparkles } from 'lucide-react';
+import Auth from './components/Auth';
+import { Loader2, Upload, X, Send, Target, Lightbulb, Mic2, Download, PenTool, AlertCircle, Video, LogOut, User, Hash } from 'lucide-react';
 
 const App: React.FC = () => {
+  const [session, setSession] = useState<Session | null>(null);
+  const [loadingSession, setLoadingSession] = useState(true);
+
   // Initialize state from localStorage if available
   const [niche, setNiche] = useState(() => localStorage.getItem('viral_niche') || '');
   const [videoIdea, setVideoIdea] = useState('');
+  const [keywords, setKeywords] = useState('');
   const [customHook, setCustomHook] = useState('');
   
   const [tone, setTone] = useState<Tone>(() => {
@@ -21,6 +28,22 @@ const App: React.FC = () => {
   const [results, setResults] = useState<InstagramContentOption[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Session Management
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setLoadingSession(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   // Persist preferences to localStorage when they change
   useEffect(() => {
@@ -45,19 +68,10 @@ const App: React.FC = () => {
     setImagePreview(null);
   };
 
-  const handleDemoMode = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
     setResults(null);
-    try {
-      const mockData = await getMockInstagramContent();
-      setResults(mockData);
-    } catch (err) {
-      setError("Erro ao carregar modo de demonstração.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  };
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,14 +86,15 @@ const App: React.FC = () => {
     setResults(null);
 
     try {
-      const generatedOptions = await generateInstagramContent(niche, videoIdea, tone, selectedFile, customHook);
+      // Agora chama o serviço local passando keywords
+      const generatedOptions = await generateInstagramContent(niche, videoIdea, tone, selectedFile, customHook, keywords);
       setResults(generatedOptions);
     } catch (err: any) {
-      setError(err.message || "Ocorreu um erro ao gerar o conteúdo viral. Tente novamente.");
+      setError("Ocorreu um erro ao gerar o conteúdo. Tente novamente.");
     } finally {
       setLoading(false);
     }
-  }, [niche, videoIdea, tone, selectedFile, customHook]);
+  }, [niche, videoIdea, tone, selectedFile, customHook, keywords]);
 
   const handleExport = () => {
     if (!results) return;
@@ -87,7 +102,9 @@ const App: React.FC = () => {
     const date = new Date().toLocaleDateString('pt-BR');
     let content = `🚀 ESTRATÉGIA VIRAL - ${niche.toUpperCase()}\n`;
     content += `📅 Data: ${date}\n`;
-    content += `💡 Ideia: ${videoIdea}\n\n`;
+    content += `💡 Ideia: ${videoIdea}\n`;
+    if (keywords) content += `🔑 Palavras-chave: ${keywords}\n`;
+    content += `🎙️ Tom: ${tone}\n\n`;
     content += `===================================\n\n`;
 
     results.forEach((option, index) => {
@@ -111,12 +128,38 @@ const App: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  // Helper to check if error is related to missing API key
-  const isApiKeyError = error && (error.includes("chave da API") || error.includes("API Key"));
+  if (loadingSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loader2 className="w-8 h-8 animate-spin text-red-600" />
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <Auth />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+      
+      {/* Top Bar with User Info */}
+      <div className="bg-white border-b border-gray-200 py-2 px-4 md:px-6 flex justify-between items-center">
+        <div className="flex items-center gap-2 text-xs md:text-sm text-gray-500 font-medium">
+          <User size={14} />
+          <span className="hidden md:inline">Logado como:</span>
+          <span className="text-gray-900">{session.user.email}</span>
+        </div>
+        <button 
+          onClick={handleSignOut}
+          className="flex items-center gap-1 text-xs font-bold text-red-500 hover:text-red-700 transition-colors"
+        >
+          <LogOut size={14} />
+          Sair
+        </button>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-4">
         <Header />
 
         {/* Viral Checklist Banner */}
@@ -136,7 +179,7 @@ const App: React.FC = () => {
           <div className="lg:col-span-5 xl:col-span-4">
             <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-6 border-t-4 border-red-500">
               <h2 className="text-xl font-bold mb-6 text-gray-800 flex items-center gap-2">
-                <PlayCircle className="text-red-500" /> Dados do Reels
+                <Target className="text-red-500" /> Dados do Reels
               </h2>
               
               <form onSubmit={handleSubmit} className="space-y-6">
@@ -169,6 +212,22 @@ const App: React.FC = () => {
                     value={videoIdea}
                     onChange={(e) => setVideoIdea(e.target.value)}
                   />
+                </div>
+
+                {/* Keywords Input */}
+                <div>
+                  <label htmlFor="keywords" className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                    <Hash size={16} className="text-green-500"/> Palavras-chave (Opcional)
+                  </label>
+                  <input
+                    id="keywords"
+                    type="text"
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all text-gray-800 text-sm placeholder-gray-400"
+                    placeholder="Ex: viral, dinheiro, dicas, tutorial"
+                    value={keywords}
+                    onChange={(e) => setKeywords(e.target.value)}
+                  />
+                  <p className="text-xs text-gray-400 mt-1 ml-1">Usado para hashtags e foco da legenda.</p>
                 </div>
 
                 {/* Custom Hook Input (Optional) */}
@@ -212,7 +271,7 @@ const App: React.FC = () => {
                 {/* Tone Selector */}
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                     <Mic2 size={16} className="text-purple-500"/> Estilo do Gancho
+                     <Mic2 size={16} className="text-purple-500"/> Tom de Voz
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     {Object.values(Tone).map((t) => (
@@ -256,29 +315,12 @@ const App: React.FC = () => {
           {/* Right Column: Results */}
           <div className="lg:col-span-7 xl:col-span-8">
              {error && (
-              <div className={`p-4 mb-6 rounded-r-lg border-l-4 shadow-sm ${isApiKeyError ? 'bg-yellow-50 border-yellow-500 text-yellow-800' : 'bg-red-50 border-red-500 text-red-700'}`}>
+              <div className="p-4 mb-6 rounded-r-lg border-l-4 shadow-sm bg-red-50 border-red-500 text-red-700">
                 <div className="flex items-start gap-3">
-                  {isApiKeyError ? <AlertTriangle className="shrink-0 mt-1" /> : <AlertCircle className="shrink-0 mt-1" />}
+                  <AlertCircle className="shrink-0 mt-1" />
                   <div className="flex-grow">
-                    <h4 className="font-bold text-lg mb-1">
-                      {isApiKeyError ? 'Configuração Necessária' : 'Ops! Algo deu errado'}
-                    </h4>
+                    <h4 className="font-bold text-lg mb-1">Ops! Algo deu errado</h4>
                     <p className="font-medium">{error}</p>
-                    {isApiKeyError && (
-                      <div className="mt-3">
-                        <div className="text-sm bg-yellow-100/50 p-3 rounded border border-yellow-200 text-yellow-900 mb-3">
-                           <p className="mb-2">Para usar o Arquiteto de Virais, o app precisa acessar a API do Google Gemini.</p>
-                           <p>Certifique-se de que a variável de ambiente <code className="font-mono bg-black text-white px-2 py-0.5 rounded text-xs">API_KEY</code> está configurada.</p>
-                        </div>
-                        <button 
-                          onClick={handleDemoMode}
-                          className="bg-yellow-600 hover:bg-yellow-700 text-white text-sm font-bold px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-md"
-                        >
-                          <Sparkles size={16} />
-                          Ativar Modo Demo (Sem API)
-                        </button>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
