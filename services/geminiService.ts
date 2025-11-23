@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { GeneratedResponse, InstagramContentOption, Tone, AudioVibe, CtaGoal } from "../types";
+import { GeneratedResponse, InstagramContentOption, Tone } from "../types";
 
 // Helper to convert File to Base64
 const fileToBase64 = (file: File): Promise<string> => {
@@ -56,12 +56,36 @@ const VIRAL_HOOKS_LIST = `
 
 const VIRAL_KEYWORDS = "Proibidas, preguiçosos, silenciosos, secretos, oculto, revelado, bastidores, mentira, verdade, dinheiro, rápido, fácil, sinais, curiosidades, inofensivos";
 
+export const getMockInstagramContent = async (): Promise<InstagramContentOption[]> => {
+  // Simulates network delay
+  await new Promise(resolve => setTimeout(resolve, 1500));
+
+  return [
+    {
+      hook: "O segredo PROIBIDO que os gurus não te contam...",
+      caption: "Você já parou pra pensar por que alguns perfis crescem rápido e o seu não?\n\nA verdade é que existe um padrão oculto nos algoritmos que 99% das pessoas ignoram.\n\nEu descobri isso da pior forma, mas você não precisa passar por isso.\n\n👇 Comenta 'SEGREDO' que eu te envio o mapa completo no direct.",
+      hashtags: ["#marketingdigital", "#segredosdonicho", "#crescimentoviral", "#dicasdeinstagram"],
+      explanation: "Usa o gatilho da 'Informação Privilegiada/Proibida' para gerar curiosidade imediata."
+    },
+    {
+      hook: "Esse é o jeito mais PREGUIÇOSO de ter resultados",
+      caption: "Pare de trabalhar duro e comece a trabalhar inteligente.\n\nDescobri um método que economiza 10h da minha semana e ainda dobra os resultados.\n\nIsso muda o jogo para quem não tem tempo a perder.\n\n💾 Salva esse post para aplicar quando estiver com preguiça (mas querendo resultados).",
+      hashtags: ["#produtividade", "#hacks", "#preguiçainteligente", "#lifestyle"],
+      explanation: "Apela para o desejo humano de obter máximo resultado com mínimo esforço (Lei do Menor Esforço)."
+    },
+    {
+      hook: "10 sinais inofensivos que você está perdendo dinheiro",
+      caption: "Você acha que está tudo bem, mas esses pequenos hábitos estão drenando seu potencial.\n\n1. Procrastinação disfarçada de planejamento.\n2. Medo de vender.\n3. Ignorar os dados...\n\n(A lista continua no vídeo)\n\n🚀 Siga o perfil para não cometer o erro número 11.",
+      hashtags: ["#dinheiro", "#sucesso", "#erroscomuns", "#empreendedorismo"],
+      explanation: "Listas numeradas com viés negativo ('perder dinheiro') geram altíssima retenção por medo de perda (FOMO)."
+    }
+  ];
+};
+
 export const generateInstagramContent = async (
   niche: string,
   videoIdea: string,
   tone: Tone,
-  audioVibe: AudioVibe,
-  ctaGoal: CtaGoal,
   imageFile: File | null,
   customHook?: string
 ): Promise<InstagramContentOption[]> => {
@@ -96,13 +120,9 @@ export const generateInstagramContent = async (
             explanation: {
               type: Type.STRING,
               description: "Explicação curta de qual gatilho mental foi usado.",
-            },
-            audioSuggestion: {
-              type: Type.STRING,
-              description: "Sugestão específica de estilo de áudio ou nome de áudio viral que combine com o hook.",
             }
           },
-          required: ["hook", "caption", "hashtags", "explanation", "audioSuggestion"],
+          required: ["hook", "caption", "hashtags", "explanation"],
         },
       },
     },
@@ -131,15 +151,12 @@ export const generateInstagramContent = async (
     4. A 'caption' (Legenda) deve ser estruturada em blocos:
        - Primeira linha: Gancho de atenção (relacionado ao título).
        - Meio: Conteúdo denso, educativo ou inspirador (O "Ouro").
-       - Final: Chamada para Ação (CTA) focada em "${ctaGoal}".
-    5. SUGIRA UM ÁUDIO: Baseado na "Vibe Musical" escolhida.
+       - Final: Chamada para Ação (CTA) estratégica para gerar engajamento ou salvamentos.
     
     ENTRADAS DO USUÁRIO:
     Nicho: "${niche}"
     Ideia do Vídeo/Contexto: "${videoIdea}"
     Tom de Voz: ${tone}
-    Vibe Musical Desejada: ${audioVibe}
-    Objetivo do Post (CTA): ${ctaGoal}
   `;
 
   if (customHook) {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { InstagramContentOption } from '../types';
-import { Copy, Check, TrendingUp, Hash, Music } from 'lucide-react';
+import { Copy, Check, TrendingUp, Hash } from 'lucide-react';
 
 interface ResultCardProps {
   option: InstagramContentOption;
@@ -60,16 +60,6 @@ const ResultCard: React.FC<ResultCardProps> = ({ option, index }) => {
             <h4 className="relative z-20 text-white font-black text-2xl md:text-3xl leading-tight drop-shadow-lg select-none">
               {option.hook}
             </h4>
-
-            {/* Audio Pill */}
-            <div className="absolute bottom-4 left-4 right-4 z-20">
-               <div className="bg-black/60 backdrop-blur-sm border border-white/20 rounded-full py-1 px-3 flex items-center gap-2 mx-auto w-fit">
-                 <Music size={10} className="text-white animate-pulse" />
-                 <span className="text-[10px] text-white font-medium truncate max-w-[120px]">
-                    {option.audioSuggestion}
-                 </span>
-               </div>
-            </div>
           </div>
           
           <p className="mt-3 text-xs text-gray-500 italic text-center border-t border-gray-200 pt-2">
@@ -94,14 +84,6 @@ const ResultCard: React.FC<ResultCardProps> = ({ option, index }) => {
           </div>
 
           <div className="mt-4 pt-4 border-t border-gray-100">
-             <div className="bg-orange-50 p-3 rounded-lg border border-orange-100 mb-3 flex items-start gap-2">
-               <Music size={14} className="text-orange-500 mt-1 shrink-0" />
-               <div>
-                  <h5 className="text-xs font-bold text-orange-800 uppercase">Sugestão de Áudio</h5>
-                  <p className="text-xs text-orange-700 leading-snug">{option.audioSuggestion}</p>
-               </div>
-             </div>
-
             <label className="text-xs font-bold uppercase text-blue-600 mb-2 flex items-center gap-1">
               <Hash size={12} /> Hashtags Estratégicas
             </label>

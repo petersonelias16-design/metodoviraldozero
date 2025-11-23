@@ -1,9 +1,9 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Tone, AudioVibe, InstagramContentOption, CtaGoal } from './types';
-import { generateInstagramContent } from './services/geminiService';
+import { Tone, InstagramContentOption } from './types';
+import { generateInstagramContent, getMockInstagramContent } from './services/geminiService';
 import Header from './components/Header';
 import ResultCard from './components/ResultCard';
-import { Loader2, Upload, X, Send, Target, Lightbulb, Music, Video, PlayCircle, Mic2, Download, FileText, PenTool, MousePointerClick, AlertTriangle, AlertCircle } from 'lucide-react';
+import { Loader2, Upload, X, Send, Target, Lightbulb, Video, PlayCircle, Mic2, Download, PenTool, AlertTriangle, AlertCircle, Sparkles } from 'lucide-react';
 
 const App: React.FC = () => {
   // Initialize state from localStorage if available
@@ -13,14 +13,6 @@ const App: React.FC = () => {
   
   const [tone, setTone] = useState<Tone>(() => {
     return (localStorage.getItem('viral_tone') as Tone) || Tone.CASUAL;
-  });
-  
-  const [audioVibe, setAudioVibe] = useState<AudioVibe>(() => {
-    return (localStorage.getItem('viral_audio_vibe') as AudioVibe) || AudioVibe.TRENDING;
-  });
-
-  const [ctaGoal, setCtaGoal] = useState<CtaGoal>(() => {
-    return (localStorage.getItem('viral_cta_goal') as CtaGoal) || CtaGoal.SAVABLE;
   });
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -39,14 +31,6 @@ const App: React.FC = () => {
     localStorage.setItem('viral_tone', tone);
   }, [tone]);
 
-  useEffect(() => {
-    localStorage.setItem('viral_audio_vibe', audioVibe);
-  }, [audioVibe]);
-
-  useEffect(() => {
-    localStorage.setItem('viral_cta_goal', ctaGoal);
-  }, [ctaGoal]);
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -61,6 +45,20 @@ const App: React.FC = () => {
     setImagePreview(null);
   };
 
+  const handleDemoMode = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    setResults(null);
+    try {
+      const mockData = await getMockInstagramContent();
+      setResults(mockData);
+    } catch (err) {
+      setError("Erro ao carregar modo de demonstração.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -74,14 +72,14 @@ const App: React.FC = () => {
     setResults(null);
 
     try {
-      const generatedOptions = await generateInstagramContent(niche, videoIdea, tone, audioVibe, ctaGoal, selectedFile, customHook);
+      const generatedOptions = await generateInstagramContent(niche, videoIdea, tone, selectedFile, customHook);
       setResults(generatedOptions);
     } catch (err: any) {
       setError(err.message || "Ocorreu um erro ao gerar o conteúdo viral. Tente novamente.");
     } finally {
       setLoading(false);
     }
-  }, [niche, videoIdea, tone, audioVibe, ctaGoal, selectedFile, customHook]);
+  }, [niche, videoIdea, tone, selectedFile, customHook]);
 
   const handleExport = () => {
     if (!results) return;
@@ -89,15 +87,13 @@ const App: React.FC = () => {
     const date = new Date().toLocaleDateString('pt-BR');
     let content = `🚀 ESTRATÉGIA VIRAL - ${niche.toUpperCase()}\n`;
     content += `📅 Data: ${date}\n`;
-    content += `💡 Ideia: ${videoIdea}\n`;
-    content += `🎯 Objetivo: ${ctaGoal}\n\n`;
+    content += `💡 Ideia: ${videoIdea}\n\n`;
     content += `===================================\n\n`;
 
     results.forEach((option, index) => {
       content += `OPTION ${index + 1}\n`;
       content += `-----------------------------------\n`;
       content += `📺 TEXTO NA TELA (HOOK):\n${option.hook}\n\n`;
-      content += `🎵 ÁUDIO SUGERIDO:\n${option.audioSuggestion}\n\n`;
       content += `📝 LEGENDA:\n${option.caption}\n\n`;
       content += `🏷️ HASHTAGS:\n${option.hashtags.join(' ')}\n\n`;
       content += `🧠 POR QUE FUNCIONA:\n${option.explanation}\n\n`;
@@ -130,12 +126,8 @@ const App: React.FC = () => {
             <Video size={18} className="text-pink-500" /> 1. Vídeo da Galeria
           </div>
           <span className="hidden md:inline text-gray-700">|</span>
-          <div className="flex items-center gap-2 text-gray-300">
-            <Music size={18} className="text-purple-500" /> 2. Áudio em Alta
-          </div>
-          <span className="hidden md:inline text-gray-700">|</span>
           <div className="flex items-center gap-2 text-white font-bold">
-            <Target size={18} className="text-red-500" /> 3. Gancho Proibido (Aqui)
+            <Target size={18} className="text-red-500" /> 2. Gancho Proibido (Aqui)
           </div>
         </div>
 
@@ -240,42 +232,6 @@ const App: React.FC = () => {
                   </div>
                 </div>
 
-                {/* CTA Goal Selector (New) */}
-                <div>
-                   <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                     <MousePointerClick size={16} className="text-green-600"/> Objetivo do Post (CTA)
-                   </label>
-                   <select
-                    value={ctaGoal}
-                    onChange={(e) => setCtaGoal(e.target.value as CtaGoal)}
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none text-sm text-gray-700 font-medium bg-white"
-                   >
-                     {Object.entries(CtaGoal).map(([key, value]) => (
-                       <option key={key} value={value}>
-                         {value}
-                       </option>
-                     ))}
-                   </select>
-                </div>
-
-                {/* Audio Vibe Selector */}
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                     <Music size={16} className="text-pink-500"/> Sugestão de Áudio
-                  </label>
-                  <select
-                    value={audioVibe}
-                    onChange={(e) => setAudioVibe(e.target.value as AudioVibe)}
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none text-sm text-gray-700 font-medium bg-white"
-                  >
-                    {Object.entries(AudioVibe).map(([key, value]) => (
-                      <option key={key} value={value}>
-                        {value}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
                 <button
                   type="submit"
                   disabled={loading}
@@ -303,15 +259,24 @@ const App: React.FC = () => {
               <div className={`p-4 mb-6 rounded-r-lg border-l-4 shadow-sm ${isApiKeyError ? 'bg-yellow-50 border-yellow-500 text-yellow-800' : 'bg-red-50 border-red-500 text-red-700'}`}>
                 <div className="flex items-start gap-3">
                   {isApiKeyError ? <AlertTriangle className="shrink-0 mt-1" /> : <AlertCircle className="shrink-0 mt-1" />}
-                  <div>
+                  <div className="flex-grow">
                     <h4 className="font-bold text-lg mb-1">
                       {isApiKeyError ? 'Configuração Necessária' : 'Ops! Algo deu errado'}
                     </h4>
                     <p className="font-medium">{error}</p>
                     {isApiKeyError && (
-                      <div className="mt-3 text-sm bg-yellow-100/50 p-3 rounded border border-yellow-200 text-yellow-900">
-                        <p className="mb-2">Para usar o Arquiteto de Virais, o app precisa acessar a API do Google Gemini.</p>
-                        <p>Certifique-se de que a variável de ambiente <code className="font-mono bg-black text-white px-2 py-0.5 rounded text-xs">API_KEY</code> está configurada corretamente no seu projeto.</p>
+                      <div className="mt-3">
+                        <div className="text-sm bg-yellow-100/50 p-3 rounded border border-yellow-200 text-yellow-900 mb-3">
+                           <p className="mb-2">Para usar o Arquiteto de Virais, o app precisa acessar a API do Google Gemini.</p>
+                           <p>Certifique-se de que a variável de ambiente <code className="font-mono bg-black text-white px-2 py-0.5 rounded text-xs">API_KEY</code> está configurada.</p>
+                        </div>
+                        <button 
+                          onClick={handleDemoMode}
+                          className="bg-yellow-600 hover:bg-yellow-700 text-white text-sm font-bold px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-md"
+                        >
+                          <Sparkles size={16} />
+                          Ativar Modo Demo (Sem API)
+                        </button>
                       </div>
                     )}
                   </div>
@@ -323,7 +288,7 @@ const App: React.FC = () => {
               <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-gray-400 bg-white rounded-2xl border-2 border-dashed border-gray-200 p-8 text-center">
                 <Target className="w-20 h-20 mb-4 text-gray-200" />
                 <h3 className="text-2xl font-bold text-gray-300 mb-2">Seu vídeo vai viralizar?</h3>
-                <p className="max-w-md text-gray-400">Preencha o nicho, a ideia e escolha o áudio para desbloquear os ganchos secretos.</p>
+                <p className="max-w-md text-gray-400">Preencha o nicho e a ideia para desbloquear os ganchos secretos.</p>
               </div>
             )}
             
@@ -331,7 +296,7 @@ const App: React.FC = () => {
                <div className="flex flex-col items-center justify-center h-full min-h-[400px]">
                  <div className="w-20 h-20 border-8 border-gray-100 border-t-red-600 rounded-full animate-spin mb-6"></div>
                  <p className="text-gray-900 font-bold text-xl animate-pulse">Consultando a base de dados viral...</p>
-                 <p className="text-gray-500 mt-2">Selecionando áudios e palavras proibidas.</p>
+                 <p className="text-gray-500 mt-2">Selecionando as melhores palavras proibidas.</p>
                </div>
             )}
 
