@@ -4,7 +4,10 @@ export enum Tone {
   INSPIRATIONAL = 'Inspirador',
   EDUCATIONAL = 'Educativo',
   CASUAL = 'Casual',
-  CONTROVERSIAL = 'Polêmico/Debate'
+  CONTROVERSIAL = 'Polêmico/Debate',
+  PROVOCATIVE = 'Provocativo',
+  ASSERTIVE = 'Assertivo',
+  SURPRISING = 'Surpreendente'
 }
 
 export interface InstagramContentOption {

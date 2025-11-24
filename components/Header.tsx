@@ -13,8 +13,8 @@ const Header: React.FC = () => {
          </div>
          <h1 className="text-4xl md:text-6xl font-black tracking-tighter uppercase italic">Método Viral <br/><span className="text-5xl md:text-7xl">do Zero</span></h1>
       </div>
-      <p className="text-gray-600 text-lg max-w-xl mt-4 font-medium">
-        Transforme qualquer ideia em um vídeo viral usando a psicologia dos <span className="text-red-500 font-bold">Ganchos Proibidos</span>.
+      <p className="text-gray-600 dark:text-gray-400 text-lg max-w-xl mt-4 font-medium transition-colors duration-300">
+        Transforme qualquer ideia em um vídeo viral usando a psicologia dos <span className="text-red-600 dark:text-red-500 font-bold">Ganchos Proibidos</span>.
       </p>
     </header>
   );
