@@ -88,7 +88,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ option, index }) => {
               className="relative z-20 px-6 w-full cursor-pointer group/text transition-transform active:scale-95 hover:scale-[1.02]"
               title="Clique para copiar o título"
             >
-              <h4 className="text-white font-black text-2xl md:text-3xl leading-tight drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] select-none font-sans uppercase italic tracking-tighter group-hover/text:text-gray-100 transition-colors">
+              <h4 className="text-white font-black text-xl md:text-2xl leading-tight drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] select-none font-sans uppercase italic tracking-tighter group-hover/text:text-gray-100 transition-colors">
                 {option.hook}
               </h4>
               <div className="opacity-0 group-hover/text:opacity-100 transition-opacity absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-[10px] font-bold text-black bg-white/90 px-3 py-1 rounded-full shadow-lg backdrop-blur-sm pointer-events-none whitespace-nowrap flex items-center gap-1">

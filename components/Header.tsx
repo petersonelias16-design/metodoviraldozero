@@ -11,7 +11,7 @@ const Header: React.FC = () => {
               <Zap className="w-12 h-12 text-red-500 relative z-10" />
             </div>
          </div>
-         <h1 className="text-4xl md:text-6xl font-black tracking-tighter uppercase italic">Método Viral <br/><span className="text-5xl md:text-7xl">do Zero</span></h1>
+         <h1 className="text-3xl md:text-5xl font-black tracking-tighter uppercase italic">Método Viral <br/><span className="text-4xl md:text-6xl">do Zero</span></h1>
       </div>
       <p className="text-gray-600 dark:text-gray-400 text-lg max-w-xl mt-4 font-medium transition-colors duration-300">
         Transforme qualquer ideia em um vídeo viral usando a psicologia dos <span className="text-red-600 dark:text-red-500 font-bold">Ganchos Proibidos</span>.
