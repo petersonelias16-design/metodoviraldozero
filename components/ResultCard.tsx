@@ -66,14 +66,14 @@ const ResultCard: React.FC<ResultCardProps> = ({ option, index }) => {
             <div className="absolute inset-0 bg-black/40"></div>
 
             {/* Instagram UI Overlay Elements */}
-            <div className="absolute right-3 bottom-16 flex flex-col gap-4 text-white items-center opacity-90">
+            <div className="absolute right-3 bottom-16 flex flex-col gap-4 text-white items-center opacity-90 pointer-events-none">
                 <div className="flex flex-col items-center gap-1"><Heart size={20} fill="white" /><span className="text-[10px] font-bold">12.5K</span></div>
                 <div className="flex flex-col items-center gap-1"><MessageCircle size={20} /><span className="text-[10px] font-bold">342</span></div>
                 <div className="flex flex-col items-center gap-1"><Send size={20} /><span className="text-[10px] font-bold">Share</span></div>
                 <div className="flex flex-col items-center gap-1"><Bookmark size={20} /><span className="text-[10px] font-bold">Save</span></div>
             </div>
 
-            <div className="absolute bottom-4 left-3 right-12 text-left">
+            <div className="absolute bottom-4 left-3 right-12 text-left pointer-events-none">
                 <div className="flex items-center gap-2 mb-2">
                     <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-yellow-400 to-red-600 border border-white"></div>
                     <span className="text-white text-xs font-bold shadow-black drop-shadow-md">seu_perfil</span>
@@ -82,11 +82,19 @@ const ResultCard: React.FC<ResultCardProps> = ({ option, index }) => {
                 <div className="h-2 w-1/2 bg-white/50 rounded-full"></div>
             </div>
 
-            {/* The Viral Hook Text */}
-            <div className="relative z-20 px-6 w-full">
-              <h4 className="text-white font-black text-2xl md:text-3xl leading-tight drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] select-none font-sans uppercase italic tracking-tighter">
+            {/* The Viral Hook Text - CLICKABLE */}
+            <div 
+              onClick={() => handleCopy(option.hook, 'hook')}
+              className="relative z-20 px-6 w-full cursor-pointer group/text transition-transform active:scale-95 hover:scale-[1.02]"
+              title="Clique para copiar o título"
+            >
+              <h4 className="text-white font-black text-2xl md:text-3xl leading-tight drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] select-none font-sans uppercase italic tracking-tighter group-hover/text:text-gray-100 transition-colors">
                 {option.hook}
               </h4>
+              <div className="opacity-0 group-hover/text:opacity-100 transition-opacity absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-[10px] font-bold text-black bg-white/90 px-3 py-1 rounded-full shadow-lg backdrop-blur-sm pointer-events-none whitespace-nowrap flex items-center gap-1">
+                 {copiedHook ? <Check size={10} className="text-green-600"/> : <Copy size={10} />} 
+                 {copiedHook ? "Copiado!" : "Clique para copiar"}
+              </div>
             </div>
           </div>
           
