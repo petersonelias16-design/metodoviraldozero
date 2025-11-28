@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { supabase } from './services/supabaseClient';
 import { Session } from '@supabase/supabase-js';
 import { Tone, InstagramContentOption } from './types';
@@ -6,21 +6,34 @@ import { generateInstagramContent } from './services/geminiService';
 import Header from './components/Header';
 import ResultCard from './components/ResultCard';
 import Auth from './components/Auth';
-import { Loader2, Upload, X, Send, Target, Lightbulb, Mic2, Download, PenTool, AlertCircle, Video, LogOut, User, Hash, Sparkles, Trash2, Moon, Sun } from 'lucide-react';
+import TutorialModal from './components/TutorialModal';
+import { Loader2, Upload, X, Send, Target, Lightbulb, Mic2, Download, PenTool, AlertCircle, Video, LogOut, User, Hash, Sparkles, Trash2, Moon, Sun, HelpCircle } from 'lucide-react';
 
 const App: React.FC = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [loadingSession, setLoadingSession] = useState(true);
 
-  // Theme Management
+  // Tutorial State
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  // Theme Management - Robust Persistence Logic
   const [theme, setTheme] = useState(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('theme') || 'dark';
+      // 1. Tenta recuperar do localStorage
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme) {
+        return savedTheme;
+      }
+      // 2. Se não houver salvo, verifica preferência do sistema
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        return 'dark';
+      }
     }
+    // 3. Padrão (Dark)
     return 'dark';
   });
 
-  // Apply theme to document
+  // Apply theme to document and save to localStorage
   useEffect(() => {
     const root = window.document.documentElement;
     if (theme === 'dark') {
@@ -31,9 +44,9 @@ const App: React.FC = () => {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  const toggleTheme = () => {
+  const toggleTheme = useCallback(() => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
-  };
+  }, []);
 
   // Initialize state from localStorage if available
   const [niche, setNiche] = useState(() => localStorage.getItem('viral_niche') || '');
@@ -68,6 +81,25 @@ const App: React.FC = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Check for Tutorial on mount (only if logged in)
+  useEffect(() => {
+    if (session) {
+      const tutorialSeen = localStorage.getItem('viral_tutorial_seen');
+      if (!tutorialSeen) {
+        setShowTutorial(true);
+      }
+    }
+  }, [session]);
+
+  const closeTutorial = useCallback(() => {
+    localStorage.setItem('viral_tutorial_seen', 'true');
+    setShowTutorial(false);
+  }, []);
+
+  const openTutorial = useCallback(() => {
+    setShowTutorial(true);
+  }, []);
+
   // Persist preferences to localStorage when they change
   useEffect(() => {
     localStorage.setItem('viral_niche', niche);
@@ -77,33 +109,34 @@ const App: React.FC = () => {
     localStorage.setItem('viral_tone', tone);
   }, [tone]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setSelectedFile(file);
       const objectUrl = URL.createObjectURL(file);
       setImagePreview(objectUrl);
     }
-  };
+  }, []);
 
-  const clearFile = () => {
+  const clearFile = useCallback(() => {
     setSelectedFile(null);
     setImagePreview(null);
-  };
+  }, []);
 
-  const clearForm = () => {
+  const clearForm = useCallback(() => {
     setVideoIdea('');
     setKeywords('');
     setCustomHook('');
     setResults(null);
-    clearFile();
+    setSelectedFile(null);
+    setImagePreview(null);
     setError(null);
-  };
+  }, []);
 
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     await supabase.auth.signOut();
     setResults(null);
-  };
+  }, []);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,7 +174,7 @@ const App: React.FC = () => {
     }
   }, [niche, videoIdea, tone, selectedFile, customHook, keywords]);
 
-  const handleExport = () => {
+  const handleExport = useCallback(() => {
     if (!results) return;
 
     const date = new Date().toLocaleDateString('pt-BR');
@@ -171,7 +204,15 @@ const App: React.FC = () => {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-  };
+  }, [results, niche, videoIdea, keywords, tone]);
+
+  // Live Dynamic Title Preview Logic with enhanced typography
+  // Optimized with useMemo to prevent recalculation on every render
+  const dynamicTitle = useMemo(() => {
+    if (!niche) return "Aguardando nicho...";
+    const mainKeyword = keywords.split(',')[0].trim() || "Resultados";
+    return `O segredo do ${niche} para ter ${mainKeyword}`;
+  }, [niche, keywords]);
 
   if (loadingSession) {
     return (
@@ -185,16 +226,11 @@ const App: React.FC = () => {
     return <Auth toggleTheme={toggleTheme} theme={theme} />;
   }
 
-  // Live Dynamic Title Preview Logic with enhanced typography
-  const getDynamicTitle = () => {
-    if (!niche) return "Aguardando nicho...";
-    const mainKeyword = keywords.split(',')[0].trim() || "Resultados";
-    return `O segredo do ${niche} para ter ${mainKeyword}`;
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black pb-20 text-gray-900 dark:text-gray-200 selection:bg-red-500 selection:text-white transition-colors duration-300">
       
+      {showTutorial && <TutorialModal onClose={closeTutorial} />}
+
       {/* Top Bar with User Info */}
       <div className="bg-white/80 dark:bg-black/90 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 py-3 px-4 md:px-8 flex justify-between items-center sticky top-0 z-50 shadow-sm dark:shadow-lg transition-colors duration-300">
         <div className="flex items-center gap-3 text-xs md:text-sm font-medium">
@@ -208,6 +244,15 @@ const App: React.FC = () => {
         </div>
         
         <div className="flex items-center gap-2">
+           {/* Help/Tutorial Button */}
+           <button
+            onClick={openTutorial}
+            className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-blue-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            title="Ver Tutorial"
+          >
+            <HelpCircle size={18} />
+          </button>
+
           {/* Theme Toggle Button */}
           <button
             onClick={toggleTheme}
@@ -328,7 +373,7 @@ const App: React.FC = () => {
                       <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Simulação em Tempo Real</span>
                     </div>
                     <p className="text-base font-black text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 italic leading-tight">
-                      "{getDynamicTitle()}"
+                      "{dynamicTitle}"
                     </p>
                   </div>
                 )}
