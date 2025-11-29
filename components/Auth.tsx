@@ -21,12 +21,32 @@ const Auth: React.FC<AuthProps> = ({ toggleTheme, theme }) => {
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        // Tenta cadastrar
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
         });
+        
         if (error) throw error;
-        setMessage({ type: 'success', text: 'Cadastro realizado! Verifique seu email para confirmar.' });
+
+        // Se o Supabase estiver configurado com "Confirm Email" OFF, 
+        // a sessão é criada automaticamente e o App.tsx detectará a mudança,
+        // redirecionando para o Dashboard sem precisar de mensagem.
+        
+        // Se a sessão for nula (configuração do Supabase exige confirmação),
+        // tentamos fazer login imediatamente como fallback
+        if (!data.session) {
+           const { error: signInError } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+          if (signInError) {
+             // Se falhar o login automático, provavelmente é porque a confirmação 
+             // de email ainda está ativa no painel do Supabase.
+             setMessage({ type: 'success', text: 'Conta criada! Se não entrar automaticamente, verifique se a confirmação de email está desativada no Supabase.' });
+          }
+        }
+
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
@@ -133,7 +153,7 @@ const Auth: React.FC<AuthProps> = ({ toggleTheme, theme }) => {
             >
               {loading ? <Loader2 className="animate-spin" size={20} /> : (
                 <>
-                  {isSignUp ? 'Cadastrar Gratuitamente' : 'Acessar Plataforma'}
+                  {isSignUp ? 'Cadastrar e Entrar' : 'Acessar Plataforma'}
                   <ArrowRight size={18} />
                 </>
               )}
