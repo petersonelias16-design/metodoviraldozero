@@ -19,17 +19,10 @@ const App: React.FC = () => {
   // Theme Management - Robust Persistence Logic
   const [theme, setTheme] = useState(() => {
     if (typeof window !== 'undefined') {
-      // 1. Tenta recuperar do localStorage
       const savedTheme = localStorage.getItem('theme');
-      if (savedTheme) {
-        return savedTheme;
-      }
-      // 2. Se não houver salvo, verifica preferência do sistema
-      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        return 'dark';
-      }
+      if (savedTheme) return savedTheme;
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
     }
-    // 3. Padrão (Dark)
     return 'dark';
   });
 
@@ -72,22 +65,18 @@ const App: React.FC = () => {
       setLoadingSession(false);
     });
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  // Check for Tutorial on mount (only if logged in)
+  // Check for Tutorial on mount
   useEffect(() => {
     if (session) {
       const tutorialSeen = localStorage.getItem('viral_tutorial_seen');
-      if (!tutorialSeen) {
-        setShowTutorial(true);
-      }
+      if (!tutorialSeen) setShowTutorial(true);
     }
   }, [session]);
 
@@ -100,7 +89,7 @@ const App: React.FC = () => {
     setShowTutorial(true);
   }, []);
 
-  // Persist preferences to localStorage when they change
+  // Persist preferences
   useEffect(() => {
     localStorage.setItem('viral_niche', niche);
   }, [niche]);
@@ -108,6 +97,12 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('viral_tone', tone);
   }, [tone]);
+
+  // Optimized Input Handlers
+  const handleNicheChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setNiche(e.target.value), []);
+  const handleVideoIdeaChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => setVideoIdea(e.target.value), []);
+  const handleKeywordsChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setKeywords(e.target.value), []);
+  const handleCustomHookChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setCustomHook(e.target.value), []);
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -141,7 +136,6 @@ const App: React.FC = () => {
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validação Robusta
     const cleanNiche = niche.trim();
     const cleanIdea = videoIdea.trim();
 
@@ -159,7 +153,6 @@ const App: React.FC = () => {
     setError(null);
     setResults(null);
 
-    // Scroll to results area on mobile/desktop
     setTimeout(() => {
        window.scrollTo({ top: 400, behavior: 'smooth' });
     }, 100);
@@ -206,13 +199,24 @@ const App: React.FC = () => {
     URL.revokeObjectURL(url);
   }, [results, niche, videoIdea, keywords, tone]);
 
-  // Live Dynamic Title Preview Logic with enhanced typography
-  // Optimized with useMemo to prevent recalculation on every render
+  // Memoized Derived State
   const dynamicTitle = useMemo(() => {
     if (!niche) return "Aguardando nicho...";
     const mainKeyword = keywords.split(',')[0].trim() || "Resultados";
     return `O segredo do ${niche} para ter ${mainKeyword}`;
   }, [niche, keywords]);
+
+  // Memoized Results List to prevent re-rendering when typing in inputs
+  const resultList = useMemo(() => {
+    if (!results) return null;
+    return (
+      <div className="grid gap-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
+        {results.map((option, idx) => (
+          <ResultCard key={idx} option={option} index={idx} />
+        ))}
+      </div>
+    );
+  }, [results]);
 
   if (loadingSession) {
     return (
@@ -244,7 +248,6 @@ const App: React.FC = () => {
         </div>
         
         <div className="flex items-center gap-2">
-           {/* Help/Tutorial Button */}
            <button
             onClick={openTutorial}
             className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-blue-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
@@ -253,7 +256,6 @@ const App: React.FC = () => {
             <HelpCircle size={18} />
           </button>
 
-          {/* Theme Toggle Button */}
           <button
             onClick={toggleTheme}
             className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-yellow-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
@@ -320,7 +322,7 @@ const App: React.FC = () => {
                       className="w-full pl-11 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 focus:border-blue-500 outline-none transition-all font-medium placeholder-gray-400 dark:placeholder-gray-700 shadow-inner"
                       placeholder="Ex: Marketing Digital"
                       value={niche}
-                      onChange={(e) => setNiche(e.target.value)}
+                      onChange={handleNicheChange}
                     />
                   </div>
                 </div>
@@ -339,7 +341,7 @@ const App: React.FC = () => {
                       className="w-full pl-11 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-yellow-100 dark:focus:ring-yellow-900 focus:border-yellow-500 outline-none transition-all resize-none placeholder-gray-400 dark:placeholder-gray-700 shadow-inner leading-relaxed"
                       placeholder="Ex: Ensinar 3 formas de fazer renda extra com IA..."
                       value={videoIdea}
-                      onChange={(e) => setVideoIdea(e.target.value)}
+                      onChange={handleVideoIdeaChange}
                     />
                   </div>
                 </div>
@@ -357,7 +359,7 @@ const App: React.FC = () => {
                       className="w-full pl-11 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-100 dark:focus:ring-green-900 focus:border-green-500 outline-none transition-all text-sm placeholder-gray-400 dark:placeholder-gray-700 shadow-inner"
                       placeholder="Ex: dinheiro, liberdade, online"
                       value={keywords}
-                      onChange={(e) => setKeywords(e.target.value)}
+                      onChange={handleKeywordsChange}
                     />
                   </div>
                 </div>
@@ -379,7 +381,7 @@ const App: React.FC = () => {
                 )}
 
                 <div className="border-t border-gray-200 dark:border-gray-800 my-4 pt-4">
-                  <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => { /* Toggle advanced? */ }}>
+                  <div className="flex items-center justify-between mb-4 cursor-pointer">
                      <span className="text-xs font-bold text-gray-500 uppercase">Configurações Avançadas</span>
                   </div>
 
@@ -414,7 +416,7 @@ const App: React.FC = () => {
                       className="w-full px-4 py-2 rounded-lg bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-300 focus:border-indigo-500 outline-none transition-all text-xs placeholder-gray-400 dark:placeholder-gray-600"
                       placeholder="Gancho Manual (Opcional)..."
                       value={customHook}
-                      onChange={(e) => setCustomHook(e.target.value)}
+                      onChange={handleCustomHookChange}
                     />
                   </div>
                 </div>
@@ -482,7 +484,7 @@ const App: React.FC = () => {
             )}
 
             {results && (
-              <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
+              <>
                 <div className="mb-6 flex flex-col md:flex-row justify-between items-end gap-4 border-b border-gray-200 dark:border-gray-800 pb-4">
                   <div>
                      <h3 className="text-3xl font-black text-gray-900 dark:text-white italic tracking-tighter">RESULTADO <span className="text-red-600">DESBLOQUEADO</span></h3>
@@ -497,16 +499,12 @@ const App: React.FC = () => {
                   </button>
                 </div>
 
-                <div className="grid gap-10">
-                  {results?.map((option, idx) => (
-                    <ResultCard key={idx} option={option} index={idx} />
-                  ))}
-                </div>
+                {resultList}
                 
                 <div className="mt-12 text-center text-gray-400 dark:text-gray-600 text-xs">
                     <p>IA Treinada com base em 10.000+ vídeos virais do TikTok e Reels.</p>
                 </div>
-              </div>
+              </>
             )}
           </div>
         </div>

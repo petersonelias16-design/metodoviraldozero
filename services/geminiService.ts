@@ -40,15 +40,17 @@ const HOOKS_DATABASE = {
     "A forma mais preguiçosa (e lucrativa) de lidar com [NICHO]"
   ],
   SOCIAL_PROOF: [
-    "O segredo que os Top 1% de [NICHO] usam nos bastidores",
+    "Minha DM explodiu perguntando sobre [IDEIA], então decidi revelar:",
+    "Por que todo mundo no [NICHO] está abandonando o jeito velho por isso?",
+    "Vi 3 grandes players de [NICHO] fazendo isso essa semana (não é coincidência)",
+    "O método de [IDEIA] que virou febre nos EUA e chegou agora no Brasil",
+    "Testei o 'Hype' do [PALAVRA_CHAVE] e a verdade chocante é essa:",
+    "Se você viu todo mundo postando sobre [IDEIA], é por causa disso aqui:",
     "Analisei 100 perfis de sucesso em [NICHO] e o padrão é bizarro",
     "Perguntei para um milionário de [NICHO] qual o segredo e ele disse:",
-    "Por que todo mundo que tem [PALAVRA_CHAVE] faz exatamente isso?",
     "A estratégia de [IDEIA] que gerou resultados absurdos essa semana",
-    "Não é sorte, é método: Como eles dominam [NICHO] tão fácil",
-    "O que os gurus de [NICHO] cobram R$ 2.000 pra ensinar (de graça aqui)",
-    "A única diferença entre você e quem tem sucesso em [NICHO] é isso:",
-    "O ritual matinal de quem fatura alto com [NICHO]"
+    "Não é sorte: Como eles dominam [NICHO] tão fácil usando [PALAVRA_CHAVE]",
+    "Todo mundo no [NICHO] está falando disso (e você precisa saber porquê)"
   ],
   SCARCITY: [
     "Vou apagar esse vídeo: O segredo final sobre [IDEIA]",
@@ -263,11 +265,11 @@ export const generateInstagramContent = async (
     case Tone.PROFESSIONAL:
     case Tone.ASSERTIVE:
       // Valor, Prova e Reciprocidade
-      strategies = ['AUTHORITY', 'RECIPROCITY', 'LISTS'];
+      strategies = ['AUTHORITY', 'SOCIAL_PROOF', 'LISTS'];
       break;
     case Tone.INSPIRATIONAL:
       // Conexão, Pertencimento e Transformação
-      strategies = ['BELONGING', 'PAIN', 'CURIOSITY'];
+      strategies = ['BELONGING', 'PAIN', 'SOCIAL_PROOF'];
       break;
     case Tone.SURPRISING:
       // Novidade, Escassez e Segredo
@@ -298,7 +300,7 @@ export const generateInstagramContent = async (
     if (strategy === 'CURIOSITY') explanation = "Gap de Curiosidade: O cérebro cria uma coceira mental que só o clique resolve.";
     if (strategy === 'PAIN') explanation = "Aversão à Perda: Destacar o erro dói mais do que destacar o acerto (gera ação).";
     if (strategy === 'SHORTCUT') explanation = "Lei do Menor Esforço: Promessa de resultado alto com energia baixa.";
-    if (strategy === 'SOCIAL_PROOF') explanation = "Validação Social: 'O segredo dos experts' transfere autoridade para você.";
+    if (strategy === 'SOCIAL_PROOF') explanation = "Validação Social: 'Se todo mundo está fazendo/falando, deve ser bom'.";
     if (strategy === 'SCARCITY') explanation = "Urgência/FOMO: A ideia de que a informação vai sumir força a ação imediata.";
     if (strategy === 'CONTROVERSY') explanation = "Quebra de Padrão: Opiniões contrárias param o scroll por choque.";
     if (strategy === 'GOSSIP') explanation = "Efeito Confidencial: Cria intimidade parassocial imediata.";
